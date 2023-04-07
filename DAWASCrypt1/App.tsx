@@ -6,7 +6,6 @@
  */
 
 import React from 'react';
-import type {PropsWithChildren} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -17,44 +16,7 @@ import {
   View,
 } from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-const c = 'IloveOppai';
-function Section({children, title}: SectionProps): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text>{c}</Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+import {Colors} from 'react-native/Libraries/NewAppScreen';
 
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -72,12 +34,12 @@ function App(): JSX.Element {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={backgroundStyle}>
-        <Header />
         <View
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
-          <Section title="Step One">
+          <Text style={styles.sectionTitle}>DAWASCrypt</Text>
+          {/* <Section title="Step One">
             Edit <Text style={styles.highlight}>App.tsx</Text> to change this
             screen and then come back to see your edits.
           </Section>
@@ -90,7 +52,7 @@ function App(): JSX.Element {
           <Section title="Learn More">
             Read the docs to discover what to do next:
           </Section>
-          <LearnMoreLinks />
+          <LearnMoreLinks /> */}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -105,6 +67,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 24,
     fontWeight: '600',
+    textAlign: 'center',
   },
   sectionDescription: {
     marginTop: 8,
