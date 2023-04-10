@@ -17,6 +17,7 @@ import {
   Text,
   useColorScheme,
   View,
+  Linking,
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
@@ -25,10 +26,8 @@ import {
   GoogleSigninButton,
   User,
 } from '@react-native-google-signin/google-signin';
-
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
-
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
@@ -41,7 +40,7 @@ function App(): JSX.Element {
     }
   };
   const [currAccount, setCurrAcount] = React.useState<User>();
-  console.log('user', currAccount);
+  console.log('user', currAccount, currAccount?.user.id);
   return (
     <SafeAreaView style={backgroundStyle}>
       <StatusBar
@@ -111,7 +110,6 @@ function App(): JSX.Element {
               <Text>Sign In to Use The App</Text>
             </View>
           )}
-
           {currAccount !== undefined && (
             <View
               style={[
@@ -128,11 +126,12 @@ function App(): JSX.Element {
             </View>
           )}
         </View>
-        {/* <View>
-          <GoogleOAuthProvider clientId="839994164455-49ccuqknbqe6jsr7ppt5iku0qqv00tpp.apps.googleusercontent.com">
-            <GoogleLogin onSuccess={responseMessage} />
-          </GoogleOAuthProvider>
-        </View> */}
+        <View style={styles.container}>
+          <Button
+            title="Send Email"
+            // onPress={() => {}}
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
