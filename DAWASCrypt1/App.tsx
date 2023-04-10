@@ -1,3 +1,5 @@
+/* eslint-disable react-native/no-inline-styles */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Sample React Native App
  * https://github.com/facebook/react-native
@@ -7,6 +9,7 @@
 
 import React from 'react';
 import {
+  Button,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -17,6 +20,11 @@ import {
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
+import {
+  GoogleSignin,
+  GoogleSigninButton,
+  User,
+} from '@react-native-google-signin/google-signin';
 
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -24,7 +32,16 @@ function App(): JSX.Element {
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
-
+  const signOut = async () => {
+    try {
+      await GoogleSignin.signOut();
+      setCurrAcount(undefined); // Remember to remove the user from your app's state as well
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  const [currAccount, setCurrAcount] = React.useState<User>();
+  console.log('user', currAccount);
   return (
     <SafeAreaView style={backgroundStyle}>
       <StatusBar
@@ -37,6 +54,10 @@ function App(): JSX.Element {
         <View
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
+            flex: 1,
+            justifyContent: 'center',
+            flexDirection: 'column',
+            alignItems: 'center',
           }}>
           <Text style={styles.sectionTitle}>DAWASCrypt</Text>
           {/* <Section title="Step One">
@@ -53,7 +74,65 @@ function App(): JSX.Element {
             Read the docs to discover what to do next:
           </Section>
           <LearnMoreLinks /> */}
+          {currAccount === undefined && (
+            <View
+              style={[
+                styles.container,
+                {
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 5,
+                  margin: 5,
+                },
+              ]}>
+              <Button
+                title="Sign In"
+                disabled={currAccount !== undefined}
+                onPress={() => {
+                  GoogleSignin.configure();
+                  GoogleSignin.hasPlayServices()
+                    .then(hasPlayService => {
+                      if (hasPlayService) {
+                        GoogleSignin.signIn()
+                          .then(userInfo => {
+                            console.log(JSON.stringify(userInfo));
+                            setCurrAcount(userInfo);
+                          })
+                          .catch(e => {
+                            console.log('ERROR IS: ' + JSON.stringify(e));
+                          });
+                      }
+                    })
+                    .catch(e => {
+                      console.log('ERROR IS: ' + JSON.stringify(e));
+                    });
+                }}
+              />
+              <Text>Sign In to Use The App</Text>
+            </View>
+          )}
+
+          {currAccount !== undefined && (
+            <View
+              style={[
+                styles.container,
+                {
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 5,
+                  margin: 5,
+                },
+              ]}>
+              <Button title="Sign Out" onPress={signOut} />
+              <Text>{`Welcome ${currAccount.user?.name} !`}</Text>
+            </View>
+          )}
         </View>
+        {/* <View>
+          <GoogleOAuthProvider clientId="839994164455-49ccuqknbqe6jsr7ppt5iku0qqv00tpp.apps.googleusercontent.com">
+            <GoogleLogin onSuccess={responseMessage} />
+          </GoogleOAuthProvider>
+        </View> */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -76,6 +155,9 @@ const styles = StyleSheet.create({
   },
   highlight: {
     fontWeight: '700',
+  },
+  container: {
+    flex: 1,
   },
 });
 

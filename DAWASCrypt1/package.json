@@ -10,7 +10,9 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-google-signin/google-signin": "^9.0.2",
     "react": "18.2.0",
+    "react-gmail": "^1.0.1",
     "react-native": "0.71.5"
   },
   "devDependencies": {
