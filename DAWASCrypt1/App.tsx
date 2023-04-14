@@ -18,7 +18,9 @@ import {
   Text,
   useColorScheme,
   View,
-  Linking,
+  TextInput,
+  ToastAndroid,
+  Switch,
 } from 'react-native';
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import {
@@ -39,6 +41,23 @@ function App(): JSX.Element {
   const [loggedIn, setLoggedIn] = React.useState(false);
   const [accessToken, setAccessToken] = React.useState('');
   const [messageDetailList, setMessageDetailList] = React.useState([]);
+  const [encrypt, setEncrypt] = React.useState(false);
+  const [signature, setSignature] = React.useState(false);
+  const [mode, setMode] = React.useState(1); //1: kirim pesan, 2:inbox, 3:pesan terkirim
+  const [to, setTo] = React.useState('');
+  const [subjects, setSubjects] = React.useState('');
+  const [rawEmail, setRawEmail] = React.useState('');
+
+  const emailSentToast = () => {
+    ToastAndroid.showWithGravity(
+      'Email Sent!',
+      ToastAndroid.SHORT,
+      ToastAndroid.CENTER,
+    );
+  };
+  const encryptEmail = () => {}; //TO DO
+  const signEmail = () => {}; //TO DO
+
   const getMessagePayload = React.useCallback(
     (messageID: string) => {
       fetch(
@@ -50,18 +69,19 @@ function App(): JSX.Element {
       )
         .then(data => data.json())
         .then(jsondata => {
-          console.log(jsondata);
+          // console.log(jsondata);
           return jsondata;
         });
     },
     [accessToken, user?.user.email],
   );
-  const buildMessage = React.useCallback(
+  const sendMessage = React.useCallback(
     (
       address: string | any,
       sender: string | any,
       subject: string | any,
       content: string,
+      signed: boolean,
     ) => {
       let messageHeaders: any = {
         To: `${address}`,
@@ -73,6 +93,9 @@ function App(): JSX.Element {
         email += header += ': ' + messageHeaders[header] + '\r\n';
       }
       email += '\r\n' + content;
+      // if(signed === true){
+      //   //kalau signed jalanin signEmail()
+      // }
       try {
         fetch(
           `https://gmail.googleapis.com/upload/gmail/v1/users/${user?.user.email}/messages/send`,
@@ -86,7 +109,9 @@ function App(): JSX.Element {
           },
         )
           .then(response => response.json())
-          .then(responsedata => console.log('Send', responsedata));
+          .then(responsedata => {
+            console.log('Send', responsedata);
+          });
       } catch (error) {
         console.log('Send', error);
       }
@@ -109,7 +134,7 @@ function App(): JSX.Element {
       )
         .then(data => data.json())
         .then(jsondata => {
-          console.log(jsondata);
+          // console.log(jsondata);
           setMessageDetailList(jsondata.messages);
         });
     };
@@ -155,6 +180,13 @@ function App(): JSX.Element {
       setUser(undefined); // Remember to remove the user from your app's state as well
       setLoggedIn(false);
       setMessageDetailList([]);
+      setAccessToken('');
+      setEncrypt(false);
+      setSignature(false);
+      setMode(1);
+      setRawEmail('');
+      setSubjects('');
+      setTo('');
     } catch (error) {
       console.error(error);
     }
@@ -215,20 +247,132 @@ function App(): JSX.Element {
             </View>
           )}
         </View>
-        <View style={styles.container}>
-          <Button
-            title="Send Email"
-            onPress={() => {
-              const email = user?.user.email;
-              buildMessage(
-                'hizkianturs@gmail.com',
-                email,
-                '',
-                'bang makan bang',
-              );
-            }}
-          />
-        </View>
+        {loggedIn && (
+          <View style={styles.modeContainer}>
+            <View style={styles.switchContainer}>
+              <Button
+                title="Compose"
+                onPress={() => {
+                  setMode(1);
+                }}
+                disabled={mode === 1}
+              />
+              <Button
+                title="Inbox"
+                onPress={() => {
+                  setMode(2);
+                }}
+                disabled={mode === 2}
+              />
+              <Button
+                title="Email Sent"
+                onPress={() => {
+                  setMode(3);
+                }}
+                disabled={mode === 3}
+              />
+            </View>
+          </View>
+        )}
+        {/* compose */}
+        {loggedIn && mode === 1 && (
+          <View>
+            <View style={styles.switchContainer}>
+              <View>
+                <Switch
+                  trackColor={{false: '#767577', true: '#81b0ff'}}
+                  value={encrypt}
+                  onChange={() => {
+                    console.log('Encrypt? ', !encrypt);
+                    setEncrypt(!encrypt);
+                  }}
+                />
+                <Text>Encrypt</Text>
+              </View>
+              <View>
+                <Switch
+                  trackColor={{false: '#767577', true: '#81b0ff'}}
+                  value={signature}
+                  onChange={() => {
+                    console.log('Digital Sign? ', !signature);
+                    setSignature(!signature);
+                  }}
+                />
+                <Text>Digital Sign</Text>
+              </View>
+            </View>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.contentInput}
+                onChangeText={setTo}
+                value={to}
+                placeholder="To"
+                textAlignVertical="center"
+                multiline={true}
+                textBreakStrategy="highQuality"
+                textContentType="emailAddress"
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.contentInput}
+                onChangeText={setSubjects}
+                value={subjects}
+                placeholder="Subject"
+                textAlignVertical="center"
+                multiline={true}
+                textBreakStrategy="highQuality"
+              />
+            </View>
+            <View style={styles.emailInputContainer}>
+              <TextInput
+                style={styles.emailContentInput}
+                onChangeText={setRawEmail}
+                value={rawEmail}
+                placeholder="Insert Messages"
+                numberOfLines={4}
+                textAlignVertical="top"
+                multiline={true}
+                textBreakStrategy="highQuality"
+              />
+            </View>
+            <View style={styles.container}>
+              <Button
+                title="Send Email"
+                onPress={() => {
+                  const email = user?.user.email;
+                  if (to !== '' && rawEmail !== '') {
+                    sendMessage(to, email, subjects, rawEmail, signature);
+                    emailSentToast();
+                    setRawEmail('');
+                    setSubjects('');
+                    setTo('');
+                  } else if (rawEmail === '' && to === '') {
+                    ToastAndroid.showWithGravity(
+                      'Invalid Messages and Email Address',
+                      ToastAndroid.SHORT,
+                      ToastAndroid.CENTER,
+                    );
+                  } else if (to === '') {
+                    ToastAndroid.showWithGravity(
+                      'Invalid Email Address',
+                      ToastAndroid.SHORT,
+                      ToastAndroid.CENTER,
+                    );
+                  } else if (rawEmail === '') {
+                    ToastAndroid.showWithGravity(
+                      'Insert Your Messages',
+                      ToastAndroid.SHORT,
+                      ToastAndroid.CENTER,
+                    );
+                  }
+                }}
+              />
+            </View>
+          </View>
+        )}
+        {/* inbox */}
+        {/* email sent */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -254,6 +398,40 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    margin: 12,
+  },
+  emailInputContainer: {
+    flex: 1,
+    height: '100%',
+    margin: 12,
+  },
+  emailContentInput: {
+    height: '100%',
+    marginHorizontal: 12,
+    borderWidth: 1,
+    padding: 10,
+  },
+  inputContainer: {
+    flex: 1,
+    height: '100%',
+    marginHorizontal: 12,
+  },
+  contentInput: {
+    height: '60%',
+    margin: 12,
+    borderWidth: 1,
+    padding: 10,
+  },
+  switchContainer: {
+    flex: 1,
+    height: '100%',
+    marginHorizontal: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  modeContainer: {
+    flex: 1,
+    margin: 15,
   },
 });
 
