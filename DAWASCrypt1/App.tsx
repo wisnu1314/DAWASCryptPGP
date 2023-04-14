@@ -54,18 +54,48 @@ function App(): JSX.Element {
           return jsondata;
         });
     },
-    [accessToken, user],
+    [accessToken, user?.user.email],
+  );
+  const buildMessage = React.useCallback(
+    (
+      address: string | any,
+      sender: string | any,
+      subject: string | any,
+      content: string,
+    ) => {
+      let messageHeaders: any = {
+        To: `${address}`,
+        From: `${sender}`,
+        Subject: `${subject}`,
+      };
+      let email = '';
+      for (let header in messageHeaders) {
+        email += header += ': ' + messageHeaders[header] + '\r\n';
+      }
+      email += '\r\n' + content;
+      try {
+        fetch(
+          `https://gmail.googleapis.com/upload/gmail/v1/users/${user?.user.email}/messages/send`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'message/rfc822',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: email,
+          },
+        )
+          .then(response => response.json())
+          .then(responsedata => console.log('Send', responsedata));
+      } catch (error) {
+        console.log('Send', error);
+      }
+    },
+    [accessToken, user?.user.email],
   );
   React.useEffect(() => {
-    // firebase.initializeApp();
     GoogleSignin.configure({
-      scopes: [
-        'https://mail.google.com/',
-        // 'https://www.googleapis.com/auth/cloud-platform',
-        // 'https://www.googleapis.com/auth/gmail.readonly',
-        // 'https://www.googleapis.com/auth/gmail.modify',
-        // 'https://www.googleapis.com/auth/gmail.compose',
-      ],
+      scopes: ['https://mail.google.com/'],
       webClientId: client_ID,
       offlineAccess: true,
     });
@@ -91,7 +121,6 @@ function App(): JSX.Element {
     var idList: any[] = [];
     if (loggedIn && messageDetailList) {
       messageDetailList.forEach((key, value) => {
-        console.log(key, value);
         idList.push(key['id']);
       });
     }
@@ -130,9 +159,9 @@ function App(): JSX.Element {
       console.error(error);
     }
   };
-  if (loggedIn && messageDetailList) {
-    console.log('messages', messageIDList, getMessagePayload(messageIDList[5]));
-  }
+  // if (loggedIn && messageDetailList) {
+  //   console.log('messages', messageIDList, getMessagePayload(messageIDList[5]));
+  // }
   return (
     <SafeAreaView style={backgroundStyle}>
       <StatusBar
@@ -189,7 +218,15 @@ function App(): JSX.Element {
         <View style={styles.container}>
           <Button
             title="Send Email"
-            // onPress={() => {}}
+            onPress={() => {
+              const email = user?.user.email;
+              buildMessage(
+                'hizkianturs@gmail.com',
+                email,
+                '',
+                'bang makan bang',
+              );
+            }}
           />
         </View>
       </ScrollView>
