@@ -1,3 +1,4 @@
+/* eslint-disable dot-notation */
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
@@ -19,28 +20,119 @@ import {
   View,
   Linking,
 } from 'react-native';
-
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import {
   GoogleSignin,
   GoogleSigninButton,
   User,
+  statusCodes,
 } from '@react-native-google-signin/google-signin';
+import auth from '@react-native-firebase/auth';
+// const client_ID =
+//   '225110788241-6nqfn98dfcgmfj88nmp0japeimn0qqcg.apps.googleusercontent.com';
+const client_ID =
+  '437098112626-egf6t7r8s3cnubilo3dib0firighrp5s.apps.googleusercontent.com';
+const api_Key = 'AIzaSyB6CmbWMau8t77lAAK7X2VFI7DZSulyzoU';
+const testmail = '';
 function App(): JSX.Element {
+  const [user, setUser] = React.useState<User>();
+  const [loggedIn, setLoggedIn] = React.useState(false);
+  const [accessToken, setAccessToken] = React.useState('');
+  const [messageDetailList, setMessageDetailList] = React.useState([]);
+  const getMessagePayload = React.useCallback(
+    (messageID: string) => {
+      fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/${user?.user.email}/messages/${messageID}`,
+        {
+          method: 'GET',
+          headers: new Headers({Authorization: `Bearer ${accessToken}`}),
+        },
+      )
+        .then(data => data.json())
+        .then(jsondata => {
+          console.log(jsondata);
+          return jsondata;
+        });
+    },
+    [accessToken, user],
+  );
+  React.useEffect(() => {
+    // firebase.initializeApp();
+    GoogleSignin.configure({
+      scopes: [
+        'https://mail.google.com/',
+        // 'https://www.googleapis.com/auth/cloud-platform',
+        // 'https://www.googleapis.com/auth/gmail.readonly',
+        // 'https://www.googleapis.com/auth/gmail.modify',
+        // 'https://www.googleapis.com/auth/gmail.compose',
+      ],
+      webClientId: client_ID,
+      offlineAccess: true,
+    });
+    const getMessageList = function () {
+      fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/${user?.user.email}/messages?maxResults=10`,
+        {
+          method: 'GET',
+          headers: new Headers({Authorization: `Bearer ${accessToken}`}),
+        },
+      )
+        .then(data => data.json())
+        .then(jsondata => {
+          console.log(jsondata);
+          setMessageDetailList(jsondata.messages);
+        });
+    };
+    if (loggedIn) {
+      getMessageList();
+    }
+  }, [accessToken, getMessagePayload, loggedIn, messageDetailList, user]);
+  const messageIDList = React.useMemo(() => {
+    var idList: any[] = [];
+    if (loggedIn && messageDetailList) {
+      messageDetailList.forEach((key, value) => {
+        console.log(key, value);
+        idList.push(key['id']);
+      });
+    }
+    return idList;
+  }, [messageDetailList, loggedIn]);
   const isDarkMode = useColorScheme() === 'dark';
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
+  const signIn = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      setLoggedIn(true);
+      setUser(userInfo);
+      const tokens = await GoogleSignin.getTokens();
+      console.log(tokens);
+      const credential = auth.GoogleAuthProvider.credential(
+        tokens.idToken,
+        tokens.accessToken,
+      );
+      setAccessToken(tokens.accessToken);
+      await auth().signInWithCredential(credential);
+    } catch (error) {
+      console.log(error);
+    }
+  };
   const signOut = async () => {
     try {
+      await GoogleSignin.revokeAccess();
       await GoogleSignin.signOut();
-      setCurrAcount(undefined); // Remember to remove the user from your app's state as well
+      setUser(undefined); // Remember to remove the user from your app's state as well
+      setLoggedIn(false);
+      setMessageDetailList([]);
     } catch (error) {
       console.error(error);
     }
   };
-  const [currAccount, setCurrAcount] = React.useState<User>();
-  console.log('user', currAccount, currAccount?.user.id);
+  if (loggedIn && messageDetailList) {
+    console.log('messages', messageIDList, getMessagePayload(messageIDList[5]));
+  }
   return (
     <SafeAreaView style={backgroundStyle}>
       <StatusBar
@@ -59,21 +151,7 @@ function App(): JSX.Element {
             alignItems: 'center',
           }}>
           <Text style={styles.sectionTitle}>DAWASCrypt</Text>
-          {/* <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks /> */}
-          {currAccount === undefined && (
+          {user === undefined && (
             <View
               style={[
                 styles.container,
@@ -86,31 +164,13 @@ function App(): JSX.Element {
               ]}>
               <Button
                 title="Sign In"
-                disabled={currAccount !== undefined}
-                onPress={() => {
-                  GoogleSignin.configure();
-                  GoogleSignin.hasPlayServices()
-                    .then(hasPlayService => {
-                      if (hasPlayService) {
-                        GoogleSignin.signIn()
-                          .then(userInfo => {
-                            console.log(JSON.stringify(userInfo));
-                            setCurrAcount(userInfo);
-                          })
-                          .catch(e => {
-                            console.log('ERROR IS: ' + JSON.stringify(e));
-                          });
-                      }
-                    })
-                    .catch(e => {
-                      console.log('ERROR IS: ' + JSON.stringify(e));
-                    });
-                }}
+                disabled={user !== undefined}
+                onPress={signIn}
               />
               <Text>Sign In to Use The App</Text>
             </View>
           )}
-          {currAccount !== undefined && (
+          {user !== undefined && (
             <View
               style={[
                 styles.container,
@@ -122,7 +182,7 @@ function App(): JSX.Element {
                 },
               ]}>
               <Button title="Sign Out" onPress={signOut} />
-              <Text>{`Welcome ${currAccount.user?.name} !`}</Text>
+              <Text>{`Welcome ${user.user?.name} !`}</Text>
             </View>
           )}
         </View>
