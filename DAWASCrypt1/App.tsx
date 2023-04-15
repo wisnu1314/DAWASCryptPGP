@@ -24,12 +24,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import {Colors} from 'react-native/Libraries/NewAppScreen';
-import {
-  GoogleSignin,
-  GoogleSigninButton,
-  User,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
+import {GoogleSignin, User} from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
 import {
   Table,
@@ -38,12 +33,11 @@ import {
   TableWrapper,
   Cell,
 } from 'react-native-table-component';
-// const client_ID =
-//   '225110788241-6nqfn98dfcgmfj88nmp0japeimn0qqcg.apps.googleusercontent.com';
+
 const client_ID =
   '437098112626-egf6t7r8s3cnubilo3dib0firighrp5s.apps.googleusercontent.com';
 const api_Key = 'AIzaSyB6CmbWMau8t77lAAK7X2VFI7DZSulyzoU';
-const testmail = '';
+
 function App(): JSX.Element {
   const [user, setUser] = React.useState<User>();
   const [loggedIn, setLoggedIn] = React.useState(false);
