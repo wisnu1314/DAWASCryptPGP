@@ -129,16 +129,8 @@ function App(): JSX.Element {
     return (
       <View style={styles.inboxContainer}>
         <Table borderStyle={{borderWidth: 1, borderColor: '#C1C0B9'}}>
-          <Row
-            data={tableHead}
-            //widthArr={tableColumnWidth}
-            textStyle={{textAlign: 'center'}}
-          />
-          {/* <Rows
-            data={tableData}
-            widthArr={tableColumnWidth}
-            textStyle={{textAlign: 'center'}}
-          /> */}
+          <Row data={tableHead} textStyle={{textAlign: 'center'}} />
+
           {tableData.map((rowData: any, index: any) => (
             <TableWrapper
               key={index}
