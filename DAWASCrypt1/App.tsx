@@ -21,6 +21,7 @@ import {
   TextInput,
   ToastAndroid,
   Switch,
+  TouchableOpacity,
 } from 'react-native';
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import {
@@ -30,6 +31,13 @@ import {
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
+import {
+  Table,
+  Row,
+  Rows,
+  TableWrapper,
+  Cell,
+} from 'react-native-table-component';
 // const client_ID =
 //   '225110788241-6nqfn98dfcgmfj88nmp0japeimn0qqcg.apps.googleusercontent.com';
 const client_ID =
@@ -41,6 +49,7 @@ function App(): JSX.Element {
   const [loggedIn, setLoggedIn] = React.useState(false);
   const [accessToken, setAccessToken] = React.useState('');
   const [messageDetailList, setMessageDetailList] = React.useState([]);
+  const [messageList, setMessageList] = React.useState<any>([]);
   const [encrypt, setEncrypt] = React.useState(false);
   const [signature, setSignature] = React.useState(false);
   const [mode, setMode] = React.useState(1); //1: kirim pesan, 2:inbox, 3:pesan terkirim
@@ -55,26 +64,145 @@ function App(): JSX.Element {
       ToastAndroid.CENTER,
     );
   };
+  const getMessageHeaderValue = React.useCallback(
+    (headers: any[], target: string) => {
+      for (const idx in headers) {
+        if (headers[idx]['name'] === target) {
+          return headers[idx]['value'];
+        }
+      }
+    },
+    [],
+  );
+  const renderInbox = () => {
+    let messagePayload: any = [];
+    let messageHeader: any = [];
+    let headerFrom: any = [];
+    let headerSubject: any = [];
+    let headerDate: any = [];
+    let snippet: any = [];
+    const tableHead = ['From', 'Subject', 'Date'];
+    let tableData: any = [];
+    const element = (data: any, index: any) => {
+      return (
+        <TouchableOpacity onPress={() => console.log('Kepencet')}>
+          <View
+            style={{
+              width: '100%',
+              height: 60,
+              backgroundColor: '#78B7BB',
+              borderRadius: 2,
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}>
+            <Text
+              style={{
+                textAlign: 'center',
+                color: '#fff',
+              }}>
+              {data}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      );
+    };
+    for (const idx in messageList) {
+      messagePayload.push(messageList[idx]['payload']);
+      snippet.push(messageList[idx]['snippet']);
+    }
+    for (const idx in messagePayload) {
+      messageHeader.push(messagePayload[idx]['headers']);
+    }
+    for (const idx in messageHeader) {
+      headerFrom.push(getMessageHeaderValue(messageHeader[idx], 'From'));
+      headerSubject.push(getMessageHeaderValue(messageHeader[idx], 'Subject'));
+      headerDate.push(getMessageHeaderValue(messageHeader[idx], 'Date'));
+    }
+    for (const idx in messageHeader) {
+      let data = [];
+      data.push(headerFrom[idx]);
+      data.push(headerSubject[idx]);
+      data.push(headerDate[idx]);
+      tableData.push(data);
+    }
+    return (
+      <View style={styles.inboxContainer}>
+        <Table borderStyle={{borderWidth: 1, borderColor: '#C1C0B9'}}>
+          <Row
+            data={tableHead}
+            //widthArr={tableColumnWidth}
+            textStyle={{textAlign: 'center'}}
+          />
+          {/* <Rows
+            data={tableData}
+            widthArr={tableColumnWidth}
+            textStyle={{textAlign: 'center'}}
+          /> */}
+          {tableData.map((rowData: any, index: any) => (
+            <TableWrapper
+              key={index}
+              style={{
+                flexDirection: 'row',
+                backgroundColor: '#ffffff',
+                width: '100%',
+              }}>
+              {rowData.map((cellData: any, cellIndex: any) => (
+                <Cell
+                  key={cellIndex}
+                  data={element(cellData, cellIndex)}
+                  textStyle={{textAlign: 'center'}}
+                />
+              ))}
+            </TableWrapper>
+          ))}
+        </Table>
+      </View>
+    );
+    // return messageHeader[0];
+  };
   const encryptEmail = () => {}; //TO DO
   const signEmail = () => {}; //TO DO
-
-  const getMessagePayload = React.useCallback(
-    (messageID: string) => {
-      fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/${user?.user.email}/messages/${messageID}`,
+  const messageIDList = React.useMemo(() => {
+    var idList: any[] = [];
+    if (loggedIn && messageDetailList) {
+      messageDetailList.forEach((key, value) => {
+        idList.push(key['id']);
+      });
+    }
+    return idList;
+  }, [messageDetailList, loggedIn]);
+  const getMessageDetailList = React.useCallback(() => {
+    fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/${user?.user.email}/messages?maxResults=10`,
+      {
+        method: 'GET',
+        headers: new Headers({Authorization: `Bearer ${accessToken}`}),
+      },
+    )
+      .then(data => data.json())
+      .then(jsondata => {
+        // console.log(jsondata);
+        setMessageDetailList(jsondata.messages);
+      });
+  }, [accessToken, user]);
+  const fetchMessages = React.useCallback(() => {
+    let responses: any = [];
+    for (const val in messageIDList) {
+      //console.log(messageIDList[val]);
+      let response = fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/${user?.user.email}/messages/${messageIDList[val]}`,
         {
           method: 'GET',
           headers: new Headers({Authorization: `Bearer ${accessToken}`}),
         },
-      )
-        .then(data => data.json())
-        .then(jsondata => {
-          // console.log(jsondata);
-          return jsondata;
-        });
-    },
-    [accessToken, user?.user.email],
-  );
+      ).then(res => {
+        return res.json();
+      });
+      responses.push(response);
+    }
+    return Promise.all(responses).then(values => setMessageList(values));
+  }, [accessToken, messageIDList, user?.user.email]);
   const sendMessage = React.useCallback(
     (
       address: string | any,
@@ -111,46 +239,15 @@ function App(): JSX.Element {
           .then(response => response.json())
           .then(responsedata => {
             console.log('Send', responsedata);
+            getMessageDetailList();
+            fetchMessages();
           });
       } catch (error) {
         console.log('Send', error);
       }
     },
-    [accessToken, user?.user.email],
+    [accessToken, fetchMessages, getMessageDetailList, user?.user.email],
   );
-  React.useEffect(() => {
-    GoogleSignin.configure({
-      scopes: ['https://mail.google.com/'],
-      webClientId: client_ID,
-      offlineAccess: true,
-    });
-    const getMessageList = function () {
-      fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/${user?.user.email}/messages?maxResults=10`,
-        {
-          method: 'GET',
-          headers: new Headers({Authorization: `Bearer ${accessToken}`}),
-        },
-      )
-        .then(data => data.json())
-        .then(jsondata => {
-          // console.log(jsondata);
-          setMessageDetailList(jsondata.messages);
-        });
-    };
-    if (loggedIn) {
-      getMessageList();
-    }
-  }, [accessToken, getMessagePayload, loggedIn, messageDetailList, user]);
-  const messageIDList = React.useMemo(() => {
-    var idList: any[] = [];
-    if (loggedIn && messageDetailList) {
-      messageDetailList.forEach((key, value) => {
-        idList.push(key['id']);
-      });
-    }
-    return idList;
-  }, [messageDetailList, loggedIn]);
   const isDarkMode = useColorScheme() === 'dark';
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
@@ -187,12 +284,42 @@ function App(): JSX.Element {
       setRawEmail('');
       setSubjects('');
       setTo('');
+      setMessageList([]);
     } catch (error) {
       console.error(error);
     }
   };
-  // if (loggedIn && messageDetailList) {
-  //   console.log('messages', messageIDList, getMessagePayload(messageIDList[5]));
+
+  React.useEffect(() => {
+    GoogleSignin.configure({
+      scopes: ['https://mail.google.com/'],
+      webClientId: client_ID,
+      offlineAccess: true,
+    });
+
+    if (loggedIn) {
+      getMessageDetailList();
+      fetchMessages();
+    }
+  }, [
+    accessToken,
+    fetchMessages,
+    getMessageDetailList,
+    loggedIn,
+    messageDetailList,
+    messageIDList,
+    mode,
+    user,
+  ]);
+
+  // if (
+  //   loggedIn &&
+  //   messageDetailList &&
+  //   messageIDList &&
+  //   messageList &&
+  //   mode === 2
+  // ) {
+  //   console.log('raiden', messageList.length, renderInbox());
   // }
   return (
     <SafeAreaView style={backgroundStyle}>
@@ -372,6 +499,7 @@ function App(): JSX.Element {
           </View>
         )}
         {/* inbox */}
+        {loggedIn && mode === 2 && renderInbox()}
         {/* email sent */}
       </ScrollView>
     </SafeAreaView>
@@ -432,6 +560,14 @@ const styles = StyleSheet.create({
   modeContainer: {
     flex: 1,
     margin: 15,
+  },
+  inboxContainer: {
+    flex: 1,
+    marginHorizontal: 12,
+    marginBottom: 12,
+    height: '100%',
+    alignContent: 'center',
+    overflow: 'scroll',
   },
 });
 
