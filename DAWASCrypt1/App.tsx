@@ -22,6 +22,7 @@ import {
   ToastAndroid,
   Switch,
   TouchableOpacity,
+  LogBox,
 } from 'react-native';
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import {GoogleSignin, User} from '@react-native-google-signin/google-signin';
@@ -39,6 +40,8 @@ const client_ID =
 const api_Key = 'AIzaSyB6CmbWMau8t77lAAK7X2VFI7DZSulyzoU';
 
 function App(): JSX.Element {
+  LogBox.ignoreAllLogs();
+  LogBox.ignoreLogs(['Invalid prop textStyle of type array supplied to Cell']);
   const [user, setUser] = React.useState<User>();
   const [loggedIn, setLoggedIn] = React.useState(false);
   const [accessToken, setAccessToken] = React.useState('');
@@ -46,6 +49,7 @@ function App(): JSX.Element {
   const [messageList, setMessageList] = React.useState<any>([]);
   const [sentDetailList, setSentDetailList] = React.useState([]);
   const [sentList, setSentList] = React.useState<any>([]);
+  // const [sentFetchFinsihed, setSentFetchFinished]
   const [encrypt, setEncrypt] = React.useState(false);
   const [signature, setSignature] = React.useState(false);
   const [mode, setMode] = React.useState(1); //1: kirim pesan, 2:inbox, 3:pesan terkirim
@@ -115,8 +119,12 @@ function App(): JSX.Element {
       messagePayload.push(mList[idx]['payload']);
       snippet.push(mList[idx]['snippet']);
     }
+    //console.log('Payload', messagePayload);
+    // if (!messagePayload.includes(undefined)) {
     for (const idx in messagePayload) {
-      messageHeader.push(messagePayload[idx]['headers']);
+      if (messagePayload[idx] !== undefined) {
+        messageHeader.push(messagePayload[idx]['headers']);
+      }
     }
     for (const idx in messageHeader) {
       if (choice === 'INBOX') {
@@ -142,27 +150,30 @@ function App(): JSX.Element {
       <View style={styles.inboxContainer}>
         <Table borderStyle={{borderWidth: 1, borderColor: '#C1C0B9'}}>
           <Row data={tableHead} textStyle={{textAlign: 'center'}} />
-
-          {tableData.map((rowData: any, index: any) => (
-            <TableWrapper
-              key={index}
-              style={{
-                flexDirection: 'row',
-                backgroundColor: '#ffffff',
-                width: '100%',
-              }}>
-              {rowData.map((cellData: any, cellIndex: any) => (
-                <Cell
-                  key={cellIndex}
-                  data={element(cellData, cellIndex)}
-                  textStyle={{textAlign: 'center'}}
-                />
-              ))}
-            </TableWrapper>
-          ))}
+          {tableData &&
+            tableData.map((rowData: any, index: any) => (
+              <TableWrapper
+                key={index}
+                style={{
+                  flexDirection: 'row',
+                  backgroundColor: '#ffffff',
+                  width: '100%',
+                }}>
+                {rowData &&
+                  rowData.map((cellData: any, cellIndex: any) => (
+                    <Cell
+                      key={cellIndex}
+                      data={element(cellData, cellIndex)}
+                      textStyle={{textAlign: 'center'}}
+                    />
+                  ))}
+              </TableWrapper>
+            ))}
         </Table>
       </View>
     );
+    // }
+    // return null;
   };
 
   const encryptEmail = () => {}; //TO DO
@@ -350,10 +361,12 @@ function App(): JSX.Element {
     });
 
     if (loggedIn) {
-      getMessageDetailList();
-      fetchMessages();
-      getSentDetailList();
-      fetchSentMessages();
+      setTimeout(() => {
+        getMessageDetailList();
+        fetchMessages();
+        getSentDetailList();
+        fetchSentMessages();
+      }, 10000);
     }
   }, [
     accessToken,
@@ -442,6 +455,11 @@ function App(): JSX.Element {
               />
               <Button
                 title="Inbox"
+                // onPress={async e => {
+                //   await getMessageDetailList();
+                //   await fetchMessages();
+                //   setMode(2);
+                // }}
                 onPress={() => {
                   setMode(2);
                 }}
@@ -449,6 +467,11 @@ function App(): JSX.Element {
               />
               <Button
                 title="Email Sent"
+                // onPress={async e => {
+                //   await getSentDetailList();
+                //   await fetchSentMessages();
+                //   setMode(3);
+                // }}
                 onPress={() => {
                   setMode(3);
                 }}
