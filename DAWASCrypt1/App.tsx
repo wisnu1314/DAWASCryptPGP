@@ -141,6 +141,7 @@ function App(): JSX.Element {
               temp[index] = !temp[index];
               setSentModal(temp);
             }
+            console.log('MessagePayload', mList[index]);
           }}>
           <View
             style={{
@@ -404,6 +405,7 @@ function App(): JSX.Element {
           .then(response => response.json())
           .then(responsedata => {
             console.log('Send', responsedata);
+            emailSentToast();
             getMessageDetailList();
             fetchMessages();
             getSentDetailList();
@@ -650,7 +652,6 @@ function App(): JSX.Element {
                   const email = user?.user.email;
                   if (to !== '' && rawEmail !== '') {
                     sendMessage(to, email, subjects, rawEmail, signature);
-                    emailSentToast();
                     setRawEmail('');
                     setSubjects('');
                     setTo('');
