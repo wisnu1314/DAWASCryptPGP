@@ -50,8 +50,8 @@ function App(): JSX.Element {
   const [messageList, setMessageList] = React.useState<any>([]);
   const [sentDetailList, setSentDetailList] = React.useState([]);
   const [sentList, setSentList] = React.useState<any>([]);
-  // const [sentFetchFinsihed, setSentFetchFinished]
   const [encrypt, setEncrypt] = React.useState(false);
+  const [blockKey, setBlockKey] = React.useState('');
   const [signature, setSignature] = React.useState(false);
   const [mode, setMode] = React.useState(1); //1: kirim pesan, 2:inbox, 3:pesan terkirim
   const [to, setTo] = React.useState('');
@@ -70,6 +70,13 @@ function App(): JSX.Element {
   const emailSentToast = () => {
     ToastAndroid.showWithGravity(
       'Email Sent!',
+      ToastAndroid.SHORT,
+      ToastAndroid.CENTER,
+    );
+  };
+  const emailFecthingDone = () => {
+    ToastAndroid.showWithGravity(
+      'Email Fecthing Completed!',
       ToastAndroid.SHORT,
       ToastAndroid.CENTER,
     );
@@ -96,12 +103,15 @@ function App(): JSX.Element {
       choice === 'INBOX'
         ? ['From', 'Subject', 'Date']
         : ['To', 'Subject', 'Date'];
+    let messageRaw: any = [];
     let tableData: any = [];
     const mList = choice === 'INBOX' ? messageList : sentList;
 
     for (const idx in mList) {
       messagePayload.push(mList[idx]['payload']);
       snippet.push(mList[idx]['snippet']);
+      messageRaw.push(mList[idx]['raw']);
+      // console.log('raw', mList[idx]);
     }
     for (const idx in messagePayload) {
       if (messagePayload[idx] !== undefined) {
@@ -141,7 +151,7 @@ function App(): JSX.Element {
               temp[index] = !temp[index];
               setSentModal(temp);
             }
-            console.log('MessagePayload', mList[index]);
+            console.log('MessagePayload', mList[index], messageRaw[index]);
           }}>
           <View
             style={{
@@ -289,15 +299,7 @@ function App(): JSX.Element {
 
   const encryptEmail = () => {}; //TO DO
   const signEmail = () => {}; //TO DO
-  const messageIDList = React.useMemo(() => {
-    var idList: any[] = [];
-    if (loggedIn && messageDetailList) {
-      messageDetailList.forEach((key, value) => {
-        idList.push(key['id']);
-      });
-    }
-    return idList;
-  }, [messageDetailList, loggedIn]);
+
   const getMessageDetailList = React.useCallback(() => {
     fetch(
       `https://gmail.googleapis.com/gmail/v1/users/${user?.user.email}/messages?maxResults=10&labelIds=INBOX`,
@@ -312,12 +314,21 @@ function App(): JSX.Element {
         setMessageDetailList(jsondata.messages);
       });
   }, [accessToken, user]);
+  const messageIDList = React.useMemo(() => {
+    var idList: any[] = [];
+    if (loggedIn && messageDetailList) {
+      messageDetailList.forEach((key, value) => {
+        idList.push(key['id']);
+      });
+    }
+    return idList;
+  }, [messageDetailList, loggedIn]);
   const fetchMessages = React.useCallback(() => {
     let responses: any = [];
     for (const val in messageIDList) {
       //console.log(messageIDList[val]);
       let response = fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/${user?.user.email}/messages/${messageIDList[val]}`,
+        `https://gmail.googleapis.com/gmail/v1/users/${user?.user.email}/messages/${messageIDList[val]}?`,
         {
           method: 'GET',
           headers: new Headers({Authorization: `Bearer ${accessToken}`}),
@@ -329,15 +340,7 @@ function App(): JSX.Element {
     }
     return Promise.all(responses).then(values => setMessageList(values));
   }, [accessToken, messageIDList, user?.user.email]);
-  const sentIDList = React.useMemo(() => {
-    var idList: any[] = [];
-    if (loggedIn && sentDetailList) {
-      sentDetailList.forEach((key, value) => {
-        idList.push(key['id']);
-      });
-    }
-    return idList;
-  }, [sentDetailList, loggedIn]);
+
   const getSentDetailList = React.useCallback(() => {
     fetch(
       `https://gmail.googleapis.com/gmail/v1/users/${user?.user.email}/messages?maxResults=10&labelIds=SENT`,
@@ -352,6 +355,15 @@ function App(): JSX.Element {
         setSentDetailList(jsondata.messages);
       });
   }, [accessToken, user]);
+  const sentIDList = React.useMemo(() => {
+    var idList: any[] = [];
+    if (loggedIn && sentDetailList) {
+      sentDetailList.forEach((key, value) => {
+        idList.push(key['id']);
+      });
+    }
+    return idList;
+  }, [sentDetailList, loggedIn]);
   const fetchSentMessages = React.useCallback(() => {
     let responses: any = [];
     for (const val in sentIDList) {
@@ -439,6 +451,10 @@ function App(): JSX.Element {
       );
       setAccessToken(tokens.accessToken);
       await auth().signInWithCredential(credential);
+      await getMessageDetailList();
+      await fetchMessages();
+      await getSentDetailList();
+      await fetchSentMessages();
     } catch (error) {
       console.log(error);
     }
@@ -471,27 +487,7 @@ function App(): JSX.Element {
       webClientId: client_ID,
       offlineAccess: true,
     });
-
-    if (loggedIn) {
-      setTimeout(() => {
-        getMessageDetailList();
-        fetchMessages();
-        getSentDetailList();
-        fetchSentMessages();
-      }, 10000);
-    }
-  }, [
-    accessToken,
-    fetchMessages,
-    fetchSentMessages,
-    getMessageDetailList,
-    getSentDetailList,
-    loggedIn,
-    messageDetailList,
-    messageIDList,
-    mode,
-    user,
-  ]);
+  }, [accessToken]);
 
   return (
     <SafeAreaView style={backgroundStyle}>
@@ -551,18 +547,17 @@ function App(): JSX.Element {
             <View style={styles.switchContainer}>
               <Button
                 title="Compose"
-                onPress={() => {
+                onPress={async () => {
                   setMode(1);
+                  await getMessageDetailList();
+                  await fetchMessages();
+                  await getSentDetailList();
+                  await fetchSentMessages();
                 }}
                 disabled={mode === 1}
               />
               <Button
                 title="Inbox"
-                // onPress={async e => {
-                //   await getMessageDetailList();
-                //   await fetchMessages();
-                //   setMode(2);
-                // }}
                 onPress={() => {
                   setMode(2);
                 }}
@@ -570,11 +565,6 @@ function App(): JSX.Element {
               />
               <Button
                 title="Email Sent"
-                // onPress={async e => {
-                //   await getSentDetailList();
-                //   await fetchSentMessages();
-                //   setMode(3);
-                // }}
                 onPress={() => {
                   setMode(3);
                 }}
@@ -631,8 +621,23 @@ function App(): JSX.Element {
                 textAlignVertical="center"
                 multiline={true}
                 textBreakStrategy="highQuality"
+                maxLength={100}
               />
             </View>
+            {encrypt === true && (
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.contentInput}
+                  onChangeText={setBlockKey}
+                  value={blockKey}
+                  placeholder="Encryption Key"
+                  textAlignVertical="center"
+                  multiline={true}
+                  textBreakStrategy="highQuality"
+                  maxLength={32}
+                />
+              </View>
+            )}
             <View style={styles.emailInputContainer}>
               <TextInput
                 style={styles.emailContentInput}
@@ -643,6 +648,7 @@ function App(): JSX.Element {
                 textAlignVertical="top"
                 multiline={true}
                 textBreakStrategy="highQuality"
+                maxLength={200}
               />
             </View>
             <View style={styles.container}>
@@ -655,6 +661,9 @@ function App(): JSX.Element {
                     setRawEmail('');
                     setSubjects('');
                     setTo('');
+                    if (encrypt === true) {
+                      setBlockKey('');
+                    }
                   } else if (rawEmail === '' && to === '') {
                     ToastAndroid.showWithGravity(
                       'Invalid Messages and Email Address',
