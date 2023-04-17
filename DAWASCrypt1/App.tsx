@@ -23,6 +23,7 @@ import {
   Switch,
   TouchableOpacity,
   LogBox,
+  Modal,
 } from 'react-native';
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import {GoogleSignin, User} from '@react-native-google-signin/google-signin';
@@ -56,6 +57,12 @@ function App(): JSX.Element {
   const [to, setTo] = React.useState('');
   const [subjects, setSubjects] = React.useState('');
   const [rawEmail, setRawEmail] = React.useState('');
+  const [inboxModal, setInboxModal] = React.useState<boolean[]>(
+    new Array(10).fill(false),
+  );
+  const [sentModal, setSentModal] = React.useState<boolean[]>(
+    new Array(10).fill(false),
+  );
   const isDarkMode = useColorScheme() === 'dark';
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
@@ -91,36 +98,11 @@ function App(): JSX.Element {
         : ['To', 'Subject', 'Date'];
     let tableData: any = [];
     const mList = choice === 'INBOX' ? messageList : sentList;
-    const element = (data: any, index: any) => {
-      return (
-        <TouchableOpacity onPress={() => console.log('Kepencet')}>
-          <View
-            style={{
-              width: '100%',
-              height: 60,
-              backgroundColor: '#78B7BB',
-              borderRadius: 2,
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-            }}>
-            <Text
-              style={{
-                textAlign: 'center',
-                color: '#fff',
-              }}>
-              {data}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      );
-    };
+
     for (const idx in mList) {
       messagePayload.push(mList[idx]['payload']);
       snippet.push(mList[idx]['snippet']);
     }
-    //console.log('Payload', messagePayload);
-    // if (!messagePayload.includes(undefined)) {
     for (const idx in messagePayload) {
       if (messagePayload[idx] !== undefined) {
         messageHeader.push(messagePayload[idx]['headers']);
@@ -146,6 +128,136 @@ function App(): JSX.Element {
       data.push(headerDate[idx]);
       tableData.push(data);
     }
+    const element = (data: any, index: any) => {
+      return (
+        <TouchableOpacity
+          onPress={() => {
+            if (choice === 'INBOX') {
+              let temp = [...inboxModal];
+              temp[index] = !temp[index];
+              setInboxModal(temp);
+            } else {
+              let temp = [...sentModal];
+              temp[index] = !temp[index];
+              setSentModal(temp);
+            }
+          }}>
+          <View
+            style={{
+              width: '100%',
+              height: 60,
+              backgroundColor: 'gray',
+              borderRadius: 2,
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}>
+            <Text
+              style={{
+                textAlign: 'center',
+                color: '#fff',
+              }}>
+              {data}
+            </Text>
+          </View>
+          <Modal
+            visible={
+              choice === 'INBOX'
+                ? inboxModal[index] === true
+                : sentModal[index] === true
+            }
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => {
+              if (choice === 'INBOX') {
+                let temp = [...inboxModal];
+                temp[index] = !temp[index];
+                setInboxModal(temp);
+              } else {
+                let temp = [...sentModal];
+                temp[index] = !temp[index];
+                setSentModal(temp);
+              }
+            }}>
+            <View style={styles.modalView}>
+              <View style={styles.centeredView1}>
+                <Text
+                  style={{
+                    fontWeight: 'bold',
+                    fontSize: 18,
+                    textAlign: 'center',
+                  }}>
+                  Subject
+                </Text>
+                <View>
+                  <Text
+                    style={{
+                      textAlign: 'center',
+                    }}
+                    numberOfLines={2}>
+                    {headerSubject[index]}
+                  </Text>
+                </View>
+              </View>
+              {choice === 'INBOX' && (
+                <View style={styles.centeredView1}>
+                  <Text
+                    style={{
+                      fontWeight: 'bold',
+                      fontSize: 18,
+                      textAlign: 'center',
+                    }}>
+                    From
+                  </Text>
+                  <View>
+                    <Text
+                      style={{
+                        textAlign: 'center',
+                      }}
+                      numberOfLines={1}>
+                      {headerFrom[index]}
+                    </Text>
+                  </View>
+                </View>
+              )}
+              {choice !== 'INBOX' && (
+                <View style={styles.centeredView1}>
+                  <Text style={{fontWeight: 'bold', fontSize: 18}}>
+                    Sent To
+                  </Text>
+                  <View>
+                    <Text numberOfLines={1}>{headerTo[index]}</Text>
+                  </View>
+                </View>
+              )}
+              <View style={styles.centeredView2}>
+                <View style={{borderColor: 'black', borderRadius: 2}}>
+                  <Text numberOfLines={10} style={{textAlign: 'center'}}>
+                    {snippet[index]}
+                  </Text>
+                </View>
+              </View>
+              <View style={{marginBottom: 10}}>
+                <Button
+                  title="Close"
+                  onPress={() => {
+                    if (choice === 'INBOX') {
+                      let temp = [...inboxModal];
+                      temp[index] = !temp[index];
+                      setInboxModal(temp);
+                    } else {
+                      let temp = [...sentModal];
+                      temp[index] = !temp[index];
+                      setSentModal(temp);
+                    }
+                  }}
+                />
+              </View>
+            </View>
+          </Modal>
+        </TouchableOpacity>
+      );
+    };
     return (
       <View style={styles.inboxContainer}>
         <Table borderStyle={{borderWidth: 1, borderColor: '#C1C0B9'}}>
@@ -163,7 +275,7 @@ function App(): JSX.Element {
                   rowData.map((cellData: any, cellIndex: any) => (
                     <Cell
                       key={cellIndex}
-                      data={element(cellData, cellIndex)}
+                      data={element(cellData, index)}
                       textStyle={{textAlign: 'center'}}
                     />
                   ))}
@@ -172,8 +284,6 @@ function App(): JSX.Element {
         </Table>
       </View>
     );
-    // }
-    // return null;
   };
 
   const encryptEmail = () => {}; //TO DO
@@ -381,15 +491,6 @@ function App(): JSX.Element {
     user,
   ]);
 
-  // if (
-  //   loggedIn &&
-  //   messageDetailList &&
-  //   messageIDList &&
-  //   messageList &&
-  //   mode === 2
-  // ) {
-  //   console.log('raiden', messageList.length, renderInbox());
-  // }
   return (
     <SafeAreaView style={backgroundStyle}>
       <StatusBar
@@ -648,6 +749,44 @@ const styles = StyleSheet.create({
     height: '100%',
     alignContent: 'center',
     overflow: 'scroll',
+  },
+  centeredView1: {
+    flex: 1,
+    justifyContent: 'center',
+    flexDirection: 'column',
+    alignItems: 'center',
+    height: '20%',
+  },
+  centeredView2: {
+    flex: 1,
+    justifyContent: 'center',
+    flexDirection: 'column',
+    alignItems: 'center',
+    height: '60%',
+  },
+  modalView: {
+    flex: 1,
+    flexDirection: 'column',
+    margin: 20,
+    backgroundColor: 'gray',
+    borderRadius: 20,
+    height: '90%',
+    width: '90%',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalText: {
+    alignSelf: 'center',
+    marginBottom: 15,
+    textAlign: 'center',
   },
 });
 
