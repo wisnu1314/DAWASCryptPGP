@@ -1,8 +1,8 @@
-// npm install md5
+// npm install blueimp-md5
+// npm install seedrandom
 
-/*Problem :
-- Caranya ngeseed random
-*/
+var md5 = require("blueimp-md5");
+var shuffleSeed = require('shuffle-seed');
 
 function generateuniquekey(length){
     let result = '';
@@ -21,30 +21,38 @@ BLOCKSIZE = 16;
 BLOCKSIZE_BITS = 16;
 UNIQUE = generateuniquekey(36);
 
-const generator = new Math.seedrandom('[your seed here]');
-const randomNumber = generator();
-
 function shuffle(message, key){
-    //random.seed(key)
     l = new Array(message.length);
-    //random.shuffle(l)
-    return ; //[message[x] for x in l];
+    shuffleSeed.shuffle(l,key);
+    // return [message[x] for x in l];
 }
 
 function unshuffle(shuffled_message, key){
-    //random.seed(key)
     l = new Array(message.length);
-    //random.shuffle(l)
-    //for i, x in enumerate(l):
-    //  out[x] = shuffled_message[i]
+    shuffleSeed.unshuffle(l,key);
+    for (i, x in enumerate(l)){
+        out[x] = shuffled_message[i];
+    }
     return out;
 }
+
 
 function encrypt(key, message, mode){
     ciphertext = "";
     n = BLOCKSIZE;
 
-    message = 
+    message = function () {
+        var _pj_a = [],
+            _pj_b = range(0, message.length, n);
+      
+        for (var _pj_c = 0, _pj_d = _pj_b.length; _pj_c < _pj_d; _pj_c += 1) {
+          var i = _pj_b[_pj_c];
+      
+          _pj_a.push(message.slice(i, i + n));
+        }
+      
+        return _pj_a;
+    }.call(this);
 
     lastBlockLength = message[message.length - 1].length;
 
@@ -53,23 +61,131 @@ function encrypt(key, message, mode){
             message[message.length - 1] += " ";
         }
     }
+
+    key = key_md5(key);
+    key_initial = key;
+    ctr = 0;
+
+    for (block in message) {
+        sbox = generatesbox(key);
+        L = [""] * (ROUNDS + 1);
+        R = [""] * (ROUNDS + 1);
+        L[0] = block.slice(0, BLOCKSIZE/2);
+        R[0] = block.slice(BLOCKSIZE/2);
+
+        for (let i = 1; i < (ROUNDS+1); i++){
+            round_key = subkeygen(str(i), key, i)
+            LR_im = R[i - 1].slice(0, BLOCKSIZE / 4);
+            RR_im = R[i - 1].slice(BLOCKSIZE / 4);
+
+            RR_im = LL_i;
+            LR_im = xor(RL_i, transform(RR_im, i, round_key, sbox));
+            
+            LL_i = RR_im;
+            RL_i = xor(LR_im, transform(RR_im, i, round_key, sbox));
+
+            L[i] = LL_i + RL_i;
+            R[i] = xor(L[i - 1], transform(R[i - 1], i, round_key, sbox));
+        }
+
+        partial_message = L[ROUNDS] + R[ROUNDS];
+        unshuffle(partial_message, key)
+        message += partial_message
+        if (mode == "cbc"){
+            key = subkeygen(L[0], key, i);
+        }
+        if (mode == "counter"){
+            key = subkeygen(ctr.toString(), key_initial, i);
+            ctr += 1;
+        }
+    }
+    return message;
+
 }
 
 function decrypt(key, ciphertext, mode){
     message = "";
     n = BLOCKSIZE;
 
+    ciphertext = function () {
+        var _pj_a = [],
+            _pj_b = range(0, ciphertext.length, n);
+      
+        for (var _pj_c = 0, _pj_d = _pj_b.length; _pj_c < _pj_d; _pj_c += 1) {
+          var i = _pj_b[_pj_c];
+      
+          _pj_a.push(ciphertext.slice(i, i + n));
+        }
+      
+        return _pj_a;
+    }.call(this);
+
+    lastBlockLength = ciphertext[ciphertext.length - 1].length;
+
+    if (lastBlockLength < BLOCKSIZE){
+        for (let i = lastBlockLength; i < BLOCKSIZE ; i++){
+            ciphertext[ciphertext.length - 1] += " ";
+        } 
+    }
+
+    key = key_md5(key);
+    key_initial = key;
+    ctr = 0;
+
+    for (block in ciphertext) {
+        sbox = generatesbox(key);
+        L = [""] * (ROUNDS + 1);
+        R = [""] * (ROUNDS + 1);
+        L[ROUNDS] = block.slice(0, BLOCKSIZE/2);
+        R[ROUNDS] = block.slice(BLOCKSIZE/2);
+
+        for (let i = ROUNDS; i > 0; i--){
+            round_key = subkeygen(str(i), key, i)
+            LL_i = L[i].slice(0, BLOCKSIZE / 4);
+            RL_i = L[i].slice(BLOCKSIZE / 4);
+
+            RR_im = LL_i;
+            LR_im = xor(RL_i, transform(RR_im, i, round_key, sbox));
+            
+            R[i - 1] = LR_im + RR_im;
+            L[i - 1] = xor(R[i], transform(R[i - 1], i, round_key, sbox));
+        }
+
+        partial_message = L[0] + R[0];
+        unshuffle(partial_message, key)
+        message += partial_message
+        if (mode == "cbc"){
+            key = subkeygen(L[0], key, i);
+        }
+        if (mode == "counter"){
+            key = subkeygen(str(ctr), key_initial, i);
+            ctr += 1;
+        }
+    }
+    return message;
 }
+
+function key_md5(key){
+    return (md5((key+UNIQUE).encode('utf-8')));
+}
+    
+function subkeygen(s1, s2, i){
+    result = md5((s1+s2).encode('utf-8'));
+    return result
+}
+    
+
 
 function transform(x, i, k, sbox){
     k = stobin(k);
-    x = stobin()
+    x = stobin(x.toString());
     if (x.lenth == 32){
         out = "";
         for (let i = 0; i < 8; i++){
-            
+            val = bintoint(x.slice(i * 4, i * 4 + 4));
+            out += bin(sbox[i].index(val)).slice(2).zfill(4);
         }
-        
+        out = out.slice(4, out.length) + out.slice(0, 4);
     }
     else {
         out = x
@@ -82,13 +198,25 @@ function transform(x, i, k, sbox){
 }
 
 // xor two strings
-function xor(s1, s2){
-    return ;
+function xor(a, b){
+    var res = "",
+        l = Math.max(a.length, b.length);
+    for (var i=0; i<l; i+=4)
+        res = ("000"+(parseInt(a.slice(-i-4, -i||a.length), 16) ^ parseInt(b.slice(-i-4, -i||b.length), 16)).toString(16)).slice(-4) + res;
+    return res;
 }
-
 // string to binary with length 8
 function stobin(s){
-    return ;
+    const numString = num.toString(radix);
+    return numString.length === length ?
+      numString :
+      padStart(numString, length - numString.length, "0")
+}
+
+function padStart(string, length, char) {
+    return length > 0 ?
+      padStart(char + string, --length, char) :
+      string;
 }
 
 // binary to decimal
