@@ -22,9 +22,13 @@ BLOCKSIZE_BITS = 16;
 UNIQUE = generateuniquekey(36);
 
 function shuffle(message, key){
-    l = new Array(message.length);
-    shuffleSeed.shuffle(l,key);
-    // return [message[x] for x in l];
+    shuffled = new Array(message.length);
+    for (let i = 0; i > message.length; i++){
+        shuffled[i] = message[i];
+    }
+    shuffleSeed.shuffle(shuffled,key);
+    
+    return shuffled;
 }
 
 function unshuffle(shuffled_message, key){
@@ -89,7 +93,7 @@ function encrypt(key, message, mode){
         }
 
         partial_message = L[ROUNDS] + R[ROUNDS];
-        unshuffle(partial_message, key)
+        shuffle(partial_message, key)
         message += partial_message
         if (mode == "cbc"){
             key = subkeygen(L[0], key, i);
