@@ -16,10 +16,10 @@ function generateuniquekey(length){
     return result;
 }
 
-var ROUNDS = 16;
-var BLOCKSIZE = 16;
-var BLOCKSIZE_BITS = 16;
-var UNIQUE = generateuniquekey(36);
+const ROUNDS = 16;
+const BLOCKSIZE = 16;
+const BLOCKSIZE_BITS = 16;
+const UNIQUE = generateuniquekey(36);
 
 function shuffle(message, key){
     var shuffled = new Array(message.length);
