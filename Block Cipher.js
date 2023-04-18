@@ -16,13 +16,13 @@ function generateuniquekey(length){
     return result;
 }
 
-ROUNDS = 16;
-BLOCKSIZE = 16;
-BLOCKSIZE_BITS = 16;
-UNIQUE = generateuniquekey(36);
+var ROUNDS = 16;
+var BLOCKSIZE = 16;
+var BLOCKSIZE_BITS = 16;
+var UNIQUE = generateuniquekey(36);
 
 function shuffle(message, key){
-    shuffled = new Array(message.length);
+    var shuffled = new Array(message.length);
     for (let i = 0; i > message.length; i++){
         shuffled[i] = message[i];
     }
@@ -32,9 +32,10 @@ function shuffle(message, key){
 }
 
 function unshuffle(shuffled_message, key){
-    l = new Array(message.length);
+    var l = new Array(message.length);
     shuffleSeed.unshuffle(l,key);
     for (i, x in enumerate(l)){
+        
         out[x] = shuffled_message[i];
     }
     return out;
@@ -42,9 +43,10 @@ function unshuffle(shuffled_message, key){
 
 
 function encrypt(key, message, mode){
-    ciphertext = "";
-    n = BLOCKSIZE;
+    var ciphertext = "";
+    var n = BLOCKSIZE;
 
+    var message;
     message = function () {
         var _pj_a = [],
             _pj_b = range(0, message.length, n);
@@ -58,7 +60,7 @@ function encrypt(key, message, mode){
         return _pj_a;
     }.call(this);
 
-    lastBlockLength = message[message.length - 1].length;
+    var lastBlockLength = message[message.length - 1].length;
 
     if (lastBlockLength < BLOCKSIZE){
         for (let i = lastBlockLength; i < BLOCKSIZE; i++){
@@ -66,33 +68,33 @@ function encrypt(key, message, mode){
         }
     }
 
-    key = key_md5(key);
-    key_initial = key;
-    ctr = 0;
+    var key = key_md5(key);
+    var key_initial = key;
+    var ctr = 0;
 
     for (block in message) {
-        sbox = generatesbox(key);
-        L = [""] * (ROUNDS + 1);
-        R = [""] * (ROUNDS + 1);
+        var sbox = generatesbox(key);
+        var L = [""] * (ROUNDS + 1);
+        var R = [""] * (ROUNDS + 1);
         L[0] = block.slice(0, BLOCKSIZE/2);
         R[0] = block.slice(BLOCKSIZE/2);
 
         for (let i = 1; i < (ROUNDS+1); i++){
-            round_key = subkeygen(str(i), key, i)
-            LR_im = R[i - 1].slice(0, BLOCKSIZE / 4);
-            RR_im = R[i - 1].slice(BLOCKSIZE / 4);
+            var round_key = subkeygen(str(i), key, i)
+            var LR_im = R[i - 1].slice(0, BLOCKSIZE / 4);
+            var RR_im = R[i - 1].slice(BLOCKSIZE / 4);
 
-            RR_im = LL_i;
-            LR_im = xor(RL_i, transform(RR_im, i, round_key, sbox));
+            var RR_im = LL_i;
+            var LR_im = xor(RL_i, transform(RR_im, i, round_key, sbox));
             
-            LL_i = RR_im;
-            RL_i = xor(LR_im, transform(RR_im, i, round_key, sbox));
+            var LL_i = RR_im;
+            var RL_i = xor(LR_im, transform(RR_im, i, round_key, sbox));
 
             L[i] = LL_i + RL_i;
             R[i] = xor(L[i - 1], transform(R[i - 1], i, round_key, sbox));
         }
 
-        partial_message = L[ROUNDS] + R[ROUNDS];
+        var partial_message = L[ROUNDS] + R[ROUNDS];
         shuffle(partial_message, key)
         message += partial_message
         if (mode == "cbc"){
@@ -108,9 +110,10 @@ function encrypt(key, message, mode){
 }
 
 function decrypt(key, ciphertext, mode){
-    message = "";
-    n = BLOCKSIZE;
+    var message = "";
+    var n = BLOCKSIZE;
 
+    var ciphertext;
     ciphertext = function () {
         var _pj_a = [],
             _pj_b = range(0, ciphertext.length, n);
@@ -124,7 +127,7 @@ function decrypt(key, ciphertext, mode){
         return _pj_a;
     }.call(this);
 
-    lastBlockLength = ciphertext[ciphertext.length - 1].length;
+    var lastBlockLength = ciphertext[ciphertext.length - 1].length;
 
     if (lastBlockLength < BLOCKSIZE){
         for (let i = lastBlockLength; i < BLOCKSIZE ; i++){
@@ -132,30 +135,30 @@ function decrypt(key, ciphertext, mode){
         } 
     }
 
-    key = key_md5(key);
-    key_initial = key;
-    ctr = 0;
+    var key = key_md5(key);
+    var key_initial = key;
+    var ctr = 0;
 
     for (block in ciphertext) {
-        sbox = generatesbox(key);
-        L = [""] * (ROUNDS + 1);
-        R = [""] * (ROUNDS + 1);
+        var sbox = generatesbox(key);
+        var L = [""] * (ROUNDS + 1);
+        var R = [""] * (ROUNDS + 1);
         L[ROUNDS] = block.slice(0, BLOCKSIZE/2);
         R[ROUNDS] = block.slice(BLOCKSIZE/2);
 
         for (let i = ROUNDS; i > 0; i--){
-            round_key = subkeygen(str(i), key, i)
-            LL_i = L[i].slice(0, BLOCKSIZE / 4);
-            RL_i = L[i].slice(BLOCKSIZE / 4);
+            var round_key = subkeygen(str(i), key, i)
+            var LL_i = L[i].slice(0, BLOCKSIZE / 4);
+            var RL_i = L[i].slice(BLOCKSIZE / 4);
 
-            RR_im = LL_i;
-            LR_im = xor(RL_i, transform(RR_im, i, round_key, sbox));
+            var RR_im = LL_i;
+            var LR_im = xor(RL_i, transform(RR_im, i, round_key, sbox));
             
             R[i - 1] = LR_im + RR_im;
             L[i - 1] = xor(R[i], transform(R[i - 1], i, round_key, sbox));
         }
 
-        partial_message = L[0] + R[0];
+        var partial_message = L[0] + R[0];
         unshuffle(partial_message, key)
         message += partial_message
         if (mode == "cbc"){
@@ -174,17 +177,17 @@ function key_md5(key){
 }
     
 function subkeygen(s1, s2, i){
-    result = md5((s1+s2).encode('utf-8'));
+    var result = md5((s1+s2).encode('utf-8'));
     return result
 }
     
 
 
 function transform(x, i, k, sbox){
-    k = stobin(k);
-    x = stobin(x.toString());
+    var k = stobin(k);
+    var x = stobin(x.toString());
     if (x.lenth == 32){
-        out = "";
+        var out = "";
         for (let i = 0; i < 8; i++){
             val = bintoint(x.slice(i * 4, i * 4 + 4));
             out += bin(sbox[i].index(val)).slice(2).zfill(4);
@@ -194,9 +197,9 @@ function transform(x, i, k, sbox){
     else {
         out = x
     }
-    k = bintoint(k);
-    x = bintoint(out);
-    res = pow((x * k), i);
+    var k = bintoint(k);
+    var x = bintoint(out);
+    var res = pow((x * k), i);
     res = itobin(res);
     return bintostr(res);
 }
@@ -239,47 +242,47 @@ function hextodec(s){
 }
 
 function generatesbox(key){
-    sb1 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    sb2 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    sb3 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    sb4 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    sb5 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    sb6 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    sb7 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    sb8 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    var sb1 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    var sb2 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    var sb3 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    var sb4 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    var sb5 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    var sb6 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    var sb7 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    var sb8 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     for (let i = 1; i < 9; i++){
         for (let j = 1; j < 17; j++){
             switch(i) {
                 case 1:
-                    hdec1 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
+                    var hdec1 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
                     sb1 = sb1.slice(hdec1) + sb1.slice(0, hdec1);
                     break;
                 case 2:
-                    hdec2 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
+                    var hdec2 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
                     sb2 = sb2.slice(-hdec2) + sb2.slice(0, -hdec2);
                     break;
                 case 3:
-                    hdec3 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
+                    var hdec3 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
                     sb3 = sb3.slice(hdec3) + sb3.slice(0, hdec3);
                     break;
                 case 4:
-                    hdec4 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
+                    var hdec4 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
                     sb4 = sb4.slice(-hdec4) + sb4.slice(0, -hdec4);
                     break;
                 case 5:
-                    hdec5 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
+                    var hdec5 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
                     sb5 = sb5.slice(hdec5) + sb5.slice(0, hdec5);
                     break;
                 case 6:
-                    hdec6 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
+                    var hdec6 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
                     sb6 = sb6.slice(-hdec6) + sb6.slice(0, -hdec6);
                     break;
                 case 7:
-                    hdec7 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
+                    var hdec7 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
                     sb7 = sb7.slice(hdec7) + sb7.slice(0, hdec7);
                     break;
                 case 8:
-                    hdec8 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
+                    var hdec8 = (hextodec(key.slice((j - 1) * 2, (j - 1) * 2 + 2)) + i + j) % 16;
                     sb8 = sb8.slice(-hdec8) + sb8.slice(0, -hdec8);
                     break;
             }
