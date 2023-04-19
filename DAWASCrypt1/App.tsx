@@ -299,7 +299,13 @@ function App(): JSX.Element {
     );
   };
 
-  const encryptEmail = () => {}; //TO DO
+  const encryptEmail = React.useCallback(
+    (message: string) => {
+      let msg = encryptMessage(blockKey, message, 'ebc');
+      return msg;
+    },
+    [blockKey],
+  ); //TO DO
   const signEmail = () => {}; //TO DO
 
   const getMessageDetailList = React.useCallback(() => {
@@ -390,6 +396,7 @@ function App(): JSX.Element {
       subject: string | any,
       content: string,
       signed: boolean,
+      encryptt: boolean,
     ) => {
       let messageHeaders: any = {
         To: `${address}`,
@@ -400,10 +407,15 @@ function App(): JSX.Element {
       for (let header in messageHeaders) {
         email += header += ': ' + messageHeaders[header] + '\r\n';
       }
-      email += '\r\n' + content;
+      let temp = content;
+      if (encryptt === true) {
+        temp = encryptEmail(temp);
+      }
+      email += '\r\n' + temp;
       // if(signed === true){
       //   //kalau signed jalanin signEmail()
       // }
+
       try {
         fetch(
           `https://gmail.googleapis.com/upload/gmail/v1/users/${user?.user.email}/messages/send`,
@@ -431,6 +443,7 @@ function App(): JSX.Element {
     },
     [
       accessToken,
+      encryptEmail,
       fetchMessages,
       fetchSentMessages,
       getMessageDetailList,
@@ -659,7 +672,14 @@ function App(): JSX.Element {
                 onPress={() => {
                   const email = user?.user.email;
                   if (to !== '' && rawEmail !== '') {
-                    sendMessage(to, email, subjects, rawEmail, signature);
+                    sendMessage(
+                      to,
+                      email,
+                      subjects,
+                      rawEmail,
+                      signature,
+                      encrypt,
+                    );
                     setRawEmail('');
                     setSubjects('');
                     setTo('');
