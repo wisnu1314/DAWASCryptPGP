@@ -35,6 +35,8 @@ import {
   TableWrapper,
   Cell,
 } from 'react-native-table-component';
+import {encryptMessage} from './Block Cipher.js';
+import {decryptMessage} from './Block Cipher.js';
 
 const client_ID =
   '437098112626-egf6t7r8s3cnubilo3dib0firighrp5s.apps.googleusercontent.com';
