@@ -2,7 +2,9 @@
 // npm install seedrandom
 
 var md5 = require("blueimp-md5");
-var shuffleSeed = require('shuffle-seed');
+// var shuffleSeed = require('shuffle-seed');
+var utf8 = require('utf8');
+var crypto = require('crypto')
 
 function generateuniquekey(length){
     let result = '';
@@ -20,7 +22,7 @@ const ROUNDS = 16;
 const BLOCKSIZE = 16;
 const BLOCKSIZE_BITS = 16;
 const UNIQUE = generateuniquekey(36);
-
+ /*
 function shuffle(message, key){
     var shuffled = new Array(message.length);
     for (let i = 0; i > message.length; i++){
@@ -40,19 +42,21 @@ function unshuffle(shuffled_message, key){
     }
     return out;
 }
+*/
 
-
-export function encryptMessage(key, message, mode){
+function encryptMessage(key, message, mode){
     var ciphertext = "";
     var n = BLOCKSIZE;
-    var b_message = [];
+    var b_message = new Array(message.length/n);
 
-    for (let i = 0; i < (message.length()/n) ; i++){
-        b_message[i] = message.slice(i*n,(i*n)+n);
-        message = message.slice((i*n)+n,message.length());
+    var len = message.length;
+
+    for (let i = 0; i < (len/n); i++){
+        b_message[i] = message.slice(0,n);
+        message = message.slice(n);
     }
 
-    var lastBlockLength = message[message.length - 1].length;
+    var lastBlockLength = b_message[b_message.length - 1].length;
 
     if (lastBlockLength < BLOCKSIZE){
         for (let i = lastBlockLength; i < BLOCKSIZE; i++){
@@ -64,21 +68,30 @@ export function encryptMessage(key, message, mode){
     var key_initial = key;
     var ctr = 0;
 
-    for (block in b_message) {
+    console.log(b_message);
+
+    for (let i = 0; i < b_message.length ; i++) {
         var sbox = generatesbox(key);
-        var L = [""] * (ROUNDS + 1);
-        var R = [""] * (ROUNDS + 1);
-        L[0] = block.slice(0, BLOCKSIZE/2);
-        R[0] = block.slice(BLOCKSIZE/2);
+        var L = new Array(ROUNDS +1);
+        var R = new Array(ROUNDS +1);
+        
+        L[0] = b_message[i].slice(0, BLOCKSIZE/2);
+        R[0] = b_message[i].slice(BLOCKSIZE/2);
+        //console.log(L[0]);
 
         for (let i = 1; i < (ROUNDS+1); i++){
-            var round_key = subkeygen(str(i), key, i)
+            var round_key = subkeygen(i.toString(), key, i)
             var LR_im = R[i - 1].slice(0, BLOCKSIZE / 4);
             var RR_im = R[i - 1].slice(BLOCKSIZE / 4);
-
-            var RR_im = LL_i;
-            var LR_im = xor(RL_i, transform(RR_im, i, round_key, sbox));
+            //console.log(RR_im);
             
+            /*
+            console.log(LR_im);
+            console.log(RR_im);
+            console.log(round_key);
+            console.log(sbox);
+            console.log(transform(RR_im, i, round_key, sbox));
+            */
             var LL_i = RR_im;
             var RL_i = xor(LR_im, transform(RR_im, i, round_key, sbox));
 
@@ -87,8 +100,8 @@ export function encryptMessage(key, message, mode){
         }
 
         var partial_message = L[ROUNDS] + R[ROUNDS];
-        shuffle(partial_message, key)
-        message += partial_message
+        
+        ciphertext += partial_message
         if (mode == "cbc"){
             key = subkeygen(L[0], key, i);
         }
@@ -101,17 +114,22 @@ export function encryptMessage(key, message, mode){
 
 }
 
-export function decryptMessage(key, ciphertext, mode){
+function decryptMessage(key, ciphertext, mode){
     var message = "";
+    ciphertext = "Theories about learning with multimedia can be positioned at different levels. At a basic level, psychological theories describe memory systems and cognitive processes that explain how people process different types of information and how they learn with different senses."
     var n = BLOCKSIZE;
-    var b_ciphertext = [];
+    var b_ciphertext = new Array(ciphertext.length/n);;
 
-    for (let i = 0; i < (ciphertext.length()/n) ; i++){
-        b_ciphertext[i] = ciphertext.slice(i*n,(i*n)+n);
-        ciphertext = ciphertext.slice((i*n)+n,ciphertext.length());
+    console.log(ciphertext);
+    var len = ciphertext.length;
+
+    for (let i = 0; i < (len/n); i++){
+        b_ciphertext[i] = ciphertext.slice(0,n);
+        ciphertext = ciphertext.slice(n);
     }
+    console.log(b_ciphertext);
 
-    var lastBlockLength = ciphertext[ciphertext.length - 1].length;
+    var lastBlockLength = b_ciphertext[b_ciphertext.length - 1].length;
 
     if (lastBlockLength < BLOCKSIZE){
         for (let i = lastBlockLength; i < BLOCKSIZE ; i++){
@@ -125,16 +143,16 @@ export function decryptMessage(key, ciphertext, mode){
 
     for (block in b_ciphertext) {
         var sbox = generatesbox(key);
-        var L = [""] * (ROUNDS + 1);
-        var R = [""] * (ROUNDS + 1);
+        var L = new Array(ROUNDS +1);
+        var R = new Array(ROUNDS +1);
         L[ROUNDS] = block.slice(0, BLOCKSIZE/2);
         R[ROUNDS] = block.slice(BLOCKSIZE/2);
 
         for (let i = ROUNDS; i > 0; i--){
-            var round_key = subkeygen(str(i), key, i)
+            var round_key = subkeygen(i.toString, key, i)
             var LL_i = L[i].slice(0, BLOCKSIZE / 4);
             var RL_i = L[i].slice(BLOCKSIZE / 4);
-
+                
             var RR_im = LL_i;
             var LR_im = xor(RL_i, transform(RR_im, i, round_key, sbox));
             
@@ -143,13 +161,13 @@ export function decryptMessage(key, ciphertext, mode){
         }
 
         var partial_message = L[0] + R[0];
-        unshuffle(partial_message, key)
+        
         message += partial_message
         if (mode == "cbc"){
             key = subkeygen(L[0], key, i);
         }
         if (mode == "counter"){
-            key = subkeygen(str(ctr), key_initial, i);
+            key = subkeygen(ctr.toString, key_initial, i);
             ctr += 1;
         }
     }
@@ -157,20 +175,25 @@ export function decryptMessage(key, ciphertext, mode){
 }
 
 function key_md5(key){
-    return (md5((key+UNIQUE).encode('utf-8')));
+    var md5hash = crypto.createHash('md5');
+    md5hash.update(new Buffer(key+UNIQUE, 'utf8'));
+    md5val = md5hash.digest('hex');
+    return md5val;
 }
     
 function subkeygen(s1, s2, i){
-    var result = md5((s1+s2).encode('utf-8'));
-    return result
+    var md5hash = crypto.createHash('md5');
+    md5hash.update(new Buffer(s1+s2, 'utf8'));
+    md5val = md5hash.digest('hex');
+    return md5val;
 }
-    
-
 
 function transform(x, i, k, sbox){
-    var k = stobin(k);
-    var x = stobin(x.toString());
-    if (x.lenth == 32){
+    k = stobin(k);
+    //console.log(k);
+    x = stobin(x.toString());
+    //console.log(x);
+    if (x.length == 32){
         var out = "";
         for (let i = 0; i < 8; i++){
             val = bintoint(x.slice(i * 4, i * 4 + 4));
@@ -179,13 +202,14 @@ function transform(x, i, k, sbox){
         out = out.slice(4, out.length) + out.slice(0, 4);
     }
     else {
-        out = x
+        out = x;
     }
+    
     var k = bintoint(k);
     var x = bintoint(out);
-    var res = pow((x * k), i);
-    res = itobin(res);
-    return bintostr(res);
+
+    var res = Math.pow((x * k), i);
+    return itobin(res);
 }
 
 // xor two strings
@@ -198,7 +222,8 @@ function xor(a, b){
 }
 // string to binary with length 8
 function stobin(s){
-    const numString = num.toString(radix);
+    const numString = s.toString(16);
+    length = s.length;
     return numString.length === length ?
       numString :
       padStart(numString, length - numString.length, "0")
@@ -212,17 +237,17 @@ function padStart(string, length, char) {
 
 // binary to decimal
 function bintoint(s){
-    return parseInt(x, 2);
+    return parseInt(s, 2);
 }
 
 //decimal to binary to string
-function inttobin(dec) {
+function itobin(dec) {
     return (dec >>> 0).toString(2);
 }
 
 // hexadecimal to decimal
 function hextodec(s){
-    return parseInt(hex, s);
+    return parseInt(s, 16);
 }
 
 function generatesbox(key){
@@ -272,6 +297,8 @@ function generatesbox(key){
             }
         }
     }
+    sb = [ sb1, sb2, sb3, sb4, sb5, sb6, sb7, sb8 ];
+    return sb;
 }
 
 function determineMode(inp){
@@ -285,3 +312,15 @@ function determineMode(inp){
         return "counter";
     }
 }
+
+plaintextinp1 = "Theories about learning with multimedia can be positioned at different levels. At a basic level, psychological theories describe memory systems and cognitive processes that explain how people process different types of information and how they learn with different senses.";
+keyinp1 = "ameagari no niji ma";
+mode1 = determineMode(1);
+
+ciptext1 = encryptMessage(keyinp1, plaintextinp1, mode1);
+console.log("===========test============");
+console.log(ciptext1);
+
+
+plaintext1 = decryptMessage(keyinp1, ciptext1, mode1);
+console.log(plaintext1);
