@@ -408,13 +408,14 @@ function App(): JSX.Element {
         email += header += ': ' + messageHeaders[header] + '\r\n';
       }
       let temp = content;
-      if (encryptt === true) {
-        temp = encryptEmail(temp);
-      }
-      email += '\r\n' + temp;
+      // if (encryptt === true) {
+      //   temp = encryptEmail(temp);
+      // }
       // if(signed === true){
       //   //kalau signed jalanin signEmail()
+      // temp += signEmail()
       // }
+      email += '\r\n' + temp;
 
       try {
         fetch(
